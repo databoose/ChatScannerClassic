@@ -1,0 +1,6 @@
+## Interface: 11302
+## Title: ChatScanner
+## Version: 0.0.1
+## Author:databoose
+## SavedVariables: whitelistedStringTable, blacklistedStringTable, caseInsensitive, debug_mode
+ChatScanner.lua
