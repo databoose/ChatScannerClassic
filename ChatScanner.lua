@@ -1,10 +1,28 @@
-local frame = CreateFrame("FRAME")
-frame:RegisterEvent("ADDON_LOADED") -- Fired when saved variables are loaded
-frame:RegisterEvent("PLAYER_LOGOUT") -- Fired when user is logging out
-
-local function printdivider()
-    print("---------------------------------------------")
+local function clearchat()
+    for i = 1, 45 do
+        print("")
+    end
 end
+
+local f = CreateFrame("Frame")
+f:RegisterEvent("PLAYER_LOGIN")
+f:RegisterEvent("ADDON_LOADED")
+f:SetScript("OnEvent", function(self, event, ...)
+	if (event == "ADDON_LOADED") then
+        if clear_on_startup == true then
+            C_Timer.After(7, clearchat)
+        end
+	end
+end)
+
+SLASH_CS1 = "/CS"
+SlashCmdList["CS"] = function(raw_module)
+    module = raw_module
+    CommandHandler()
+end
+--[[
+]]--
+-- auto-clear on /reload and login, convenient for spammy, loud and noisy addons that like to clog up chat
 
 local function flushstrings()
     tempString1 = nil
@@ -19,27 +37,74 @@ local function flushstrings()
     tempString10 = nil
 end
 
---[[
-     autoclear login logs code below
-]]--
-addonloaded_marker = false
-function frame:OnEvent(event)
-    if event == "ADDON_LOADED" then
-        if addonloaded_marker == false then
-            C_Timer.After(6, clearchat)
-            addonloaded_marker = true
-        end
-        
-    elseif event == "PLAYER_LOGOUT" then
-         --print("Player is logging out")
-    end
-end
-frame:SetScript("OnEvent", frame.OnEvent);
+local function wipe_everything()
+    StaticPopupDialogs["CONFIRM_WIPE"] = 
+    {
+        text = "Are you absolutely sure that you want to wipe all settings/strings for ChatScanner?",
+        button1 = "Yes",
+        button2 = "No",
+        OnAccept = function()
+            wipe(whitelistedStringTable)
+            wipe(blacklistedStringTable)
+            whitelistedStringTable = {nil}
+            blacklistedStringtable = {nil}
+            caseInsensitive = nil
+            debug_mode = nil
+            clear_on_startup = nil
+            flushstrings()
+            print("All settings/strings wiped")
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3
+    }
 
-function clearchat()
-    for i = 1, 45 do
-        print("")
-    end
+    StaticPopup_Show("CONFIRM_WIPE")
+end
+
+local function printdivider()
+    print("---------------------------------------------")
+end
+
+local function help()
+    printdivider()
+    print("/CS addstring_[whitelist/blacklist] [String goes here]")
+    print("Description : Adds a string to whitelist/blacklist accordingly")
+    print("Example : /CS addstring_whitelist apple, will whitelist the word apple")
+    printdivider()
+    print("/CS delstrings")
+    print("Description : Wipes all whitelisted and blacklisted strings")
+    printdivider()
+    print("/CS liststrings_[whitelist/blacklist]")
+    print("Description : Lists all strings in whitelist")
+    print("Example : /CS liststrings_blacklist, will list blacklisted strings.")
+    printdivider()
+    print("/CS case_insensitive_[on/off]")
+    print("Description : Turns case insensitivity detection on or off")
+    print("Example : /CS case_insensitive_off, will turn off case insensitivity")
+    printdivider()
+    print("/CS case_insensitive_status")
+    print("Description : Checks if case insensitivity is on or off")
+    printdivider()
+    print("/CS clear_on_startup_[on/off]")
+    print("Description : Clears chatbox on login/UI reload")
+    printdivider()
+    print("/CS clear_on_startup_status")
+    print("Description : Checks if clear_on_startup is on or off")
+    printdivider()
+    print("/CS debug_mode_[on/off]")
+    print("Description : Toggles debug mode, only use this if you know what you're doing")
+    printdivider()
+    print("/CS debug_mode_status")
+    print("Description : Checks if debug mode is on or off")
+    printdivider()
+    print("/CS wipe_everything")
+    print("Description : Wipes all settings and strings for ChatScanner")
+    printdivider()
+    print("/CS help")
+    print("Description : Prints this page")
+    printdivider()
 end
 
 local function ltrim(s)
@@ -51,11 +116,9 @@ end
 local function addstring(textstr)
     textstr = module
     if string.find(textstr,"addstring_whitelist") then
-        print("Whitelist detected")
         textstr = string.gsub(textstr,"addstring_whitelist","")
         decision = "whitelist"
     elseif string.find(textstr,"addstring_blacklist") then
-        print("Blacklist detected")
         textstr = string.gsub(textstr,"addstring_blacklist","")
         decision = "blacklist"
     else 
@@ -64,7 +127,6 @@ local function addstring(textstr)
 
     printdivider()
     textstr = textstr:sub(1) -- removing first space on the strings that appear for some odd reason
-
 
     local count = 1
     for substring in string.gmatch(textstr,"%S+") do
@@ -120,38 +182,6 @@ local function addstring(textstr)
     end
 
     flushstrings()
-
-    if decision == "whitelist" then
-        print("Added to whitelist")
-    elseif decision == "blacklist" then
-        print("Added to blacklist")
-    end
-end
-
-local function help()
-    print("Commands : ")
-    print(" ")
-    printdivider()
-    print("/CS addstring_[whitelist/blacklist] [String goes here]")
-    print("Description : Adds a string to whitelist/blacklist accordingly")
-    print("Example : /CS addstring_whitelist apple, will whitelist the word apple")
-    printdivider()
-    print("/CS delstrings")
-    print("Description : Wipes all whitelisted and blacklisted strings")
-    printdivider()
-    print("/CS liststrings_[whitelist/blacklist]")
-    print("Description : Lists all strings in whitelist")
-    print("Example : /CS liststrings_blacklist, will list blacklisted strings.")
-    printdivider()
-    print("/CS case_insensitive_[on/off]")
-    print("Description : Turns case insensitivity detection on or off")
-    print("Example : /CS case_insensitive_off")
-    printdivider()
-    print("/CS case_insensitive_status")
-    print("Description : Checks if case insensitivity is on or off")
-    printdivider()
-    print("/CS help")
-    print("Description : Prints this page")
 end
 
 local function delstrings()
@@ -215,7 +245,8 @@ local function case_insensitive_status()
     end
 end
 
-local function CommandHandler()
+
+function CommandHandler()
     if module == "help" then
         help()
     elseif module == "delstrings" then
@@ -230,9 +261,59 @@ local function CommandHandler()
         case_insensitive_off()
     elseif module == "case_insensitive_status" then
         case_insensitive_status()
+    elseif module == "clear_on_startup_on" then
+        clear_on_startup = true
+        printdivider()
+        print("clear_on_startup set to true")
+        printdivider()
+    elseif module == "clear_on_startup_off" then
+        clear_on_startup = false
+        printdivider()
+        print("clear_on_startup set to false")
+        printdivider()
+    elseif module == "clear_on_startup_status" then
+        if clear_on_startup == true then
+            printdivider()
+            print("clear_on_startup is on")
+            printdivider()
+        elseif clear_on_startup == false then
+            printdivider()
+            print("clear_on_startup is off")
+            printdivider()
+        else
+            printdivider()
+            print("clear_on_startup seems to be nil (nonexistent)")
+            printdivider()
+        end
+    elseif module == "debug_mode_on" then
+        debug_mode = true
+        printdivider()
+        print("Debug mode activated")
+        printdivider()
+    elseif module == "debug_mode_off" then
+        debug_mode = false
+        printdivider()
+        print("Debug mode deactivated")
+        printdivider()
+    elseif module == "debug_mode_status" then
+        if debug_mode == true then
+            printdivider()
+            print("debug_mode is on")
+            printdivider()
+        elseif debug_mode == false then
+            printdivider()
+            print("debug_mode is off")
+            printdivider()
+        else
+            printdivider()
+            print("debug_mode seems to be nil (nonexistent)")
+            printdivider()
+        end
+    elseif module == "wipe_everything" then
+        wipe_everything()
     elseif module == "" then --Aka, if the user ONLY types /CS in chat
         help()
-    elseif string.find(module, "addstring_whitelist") or string.find(module, "addstring_blacklist")  then -- if the keyword addstring is detected AT ALL
+    elseif string.find(module, "addstring_whitelist") or string.find(module, "addstring_blacklist")  then
         addstring()
     else
         print("Incorrect command entered")
@@ -240,26 +321,7 @@ local function CommandHandler()
     end
 end
 
-SLASH_CS1 = "/CS"
-SlashCmdList["CS"] = function(raw_module)
-    module = raw_module
-    CommandHandler()
-end
-
-local chatFrame = CreateFrame("FRAME")
-
-chatFrame:RegisterEvent("CHAT_MSG_GUILD")
-chatFrame:RegisterEvent("CHAT_MSG_OFFICER")
-chatFrame:RegisterEvent("CHAT_MSG_PARTY")
-chatFrame:RegisterEvent("CHAT_MSG_RAID_LEADER")
-chatFrame:RegisterEvent("CHAT_MSG_RAID")
-chatFrame:RegisterEvent("CHAT_MSG_WHISPER")
-chatFrame:RegisterEvent("CHAT_MSG_BN_WHISPER")
-chatFrame:RegisterEvent("CHAT_MSG_CHANNEL")
-chatFrame:RegisterEvent("CHAT_MSG_SAY")
-
 local function chat_filter(self,event,message,sender,channel_number,channel_name,...)
-    debug_mode = false
     if debug_mode == true then
       print("event :"..event)
       print("message :"..message)
@@ -281,36 +343,39 @@ local function chat_filter(self,event,message,sender,channel_number,channel_name
     end
 
     for i, v in ipairs(whitelistedStringTable) do
-        if caseInsensitive == true then
+        local dont_repeat_notification = false
 
-        if message:find(v) then -- if matches normally
+        if caseInsensitive == true then
+        if (message:find(v)) and (dont_repeat_notification == false) then -- if matches normally
             print("|cff00ff00".."↓ Whitelisted Message ↓")
             RaidNotice_AddMessage(RaidWarningFrame,"ALERT: Whitelisted string detected", ChatTypeInfo["RAID_WARNING"])
-            PlaySoundFile("Sound\\I        --v = v.lower()erface\\RaidWarning.ogg")
+            PlaySoundFile("Sound\\Interface\\RaidWarning.ogg")
+            dont_repeat_notification = true
         end
 
         message = message:lower()
-        --v = v.lower()
-        if message:find(v) then -- if matches all lowercase
+        if (message:find(v)) and (dont_repeat_notification == false) then -- if matches all lowercase
             print("|cff00ff00".."↓ Whitelisted Message ↓")
             RaidNotice_AddMessage(RaidWarningFrame,"ALERT: Whitelisted string detected", ChatTypeInfo["RAID_WARNING"])
             PlaySoundFile("Sound\\Interface\\RaidWarning.ogg")
+            dont_repeat_notification = true
         end
 
         message = message:upper()
-        --v = v.upper()
-        if message:find(v) then -- if matches all uppercase
+        if (message:find(v)) and (dont_repeat_notification == false) then -- if matches all uppercase
             print("|cff00ff00".."↓ Whitelisted Message ↓")
             RaidNotice_AddMessage(RaidWarningFrame,"ALERT: Whitelisted string detected", ChatTypeInfo["RAID_WARNING"])
             PlaySoundFile("Sound\\Interface\\RaidWarning.ogg")
+            dont_repeat_notification = true
         end
 
-        -- end of main if block
-        elseif caseInsensitive == false then
+        -- from here on, we are checking just for the exact case sensitive message
+        elseif (caseInsensitive == false) or (caseInsensitive == nil) then
             if message:find(v) then
                 print("|cff00ff00".."↓ Whitelisted Message ↓")
                 RaidNotice_AddMessage(RaidWarningFrame,"ALERT: Whitelisted string detected", ChatTypeInfo["RAID_WARNING"])
                 PlaySoundFile("Sound\\Interface\\RaidWarning.ogg")
+                dont_repeat_notification = true
             end
         end
     end
@@ -332,8 +397,8 @@ local function chat_filter(self,event,message,sender,channel_number,channel_name
             return true
         end
     
-        -- end of main if block
-        elseif caseInsensitive == false then
+        -- from here on, we are checking just for the exact case sensitive message
+        elseif (caseInsensitive == false) or (caseInsensitive == nil) then
             if message:find(v) then
                 return true -- hide message
             end
