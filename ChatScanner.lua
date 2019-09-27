@@ -1,14 +1,18 @@
+-- auto-clear on /reload and login, convenient for spammy, loud and noisy addons that like to clog up chat
+local OneTimeStartup = false
+
 local function clearchat()
     for i = 1, 45 do
         print("")
     end
+    OneTimeStartup = true
 end
 
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
 f:RegisterEvent("ADDON_LOADED")
 f:SetScript("OnEvent", function(self, event, ...)
-	if (event == "ADDON_LOADED") then
+	if (event == "ADDON_LOADED") and (OneTimeStartup == false) then
         if clear_on_startup == true then
             C_Timer.After(7, clearchat)
         end
@@ -22,7 +26,6 @@ SlashCmdList["CS"] = function(raw_module)
 end
 --[[
 ]]--
--- auto-clear on /reload and login, convenient for spammy, loud and noisy addons that like to clog up chat
 
 local function flushstrings()
     tempString1 = nil
