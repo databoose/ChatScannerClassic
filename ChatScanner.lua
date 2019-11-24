@@ -67,7 +67,7 @@ local function wipe_everything()
 end
 
 local function printdivider()
-    print("---------------------------------------------")
+    print("-----------------------------------------------")
 end
 
 local function help()
@@ -77,7 +77,7 @@ local function help()
     print("Example : /CS addstring_whitelist apple, will whitelist the word apple")
     printdivider()
     print("/CS delstrings")
-    print("Description : Wipes all whitelisted and blacklisted strings")
+    print("Description : Wipes all whitelisted/blacklisted strings")
     printdivider()
     print("/CS liststrings_[whitelist/blacklist]")
     print("Description : Lists all strings in whitelist")
@@ -105,6 +105,9 @@ local function help()
     print("/CS wipe_everything")
     print("Description : Wipes all settings and strings for ChatScanner")
     printdivider()
+    print("/CS turnoff/turnon")
+    print("Description : Turns the chat filter on or off, while still keeping the whitelisted/blacklisted strings.")
+    printdivider()
     print("/CS help")
     print("Description : Prints this page")
     printdivider()
@@ -117,7 +120,7 @@ local function ltrim(s)
 end
 
 local function addstring(textstr)
-    textstr = module
+    local textstr = module
     if string.find(textstr,"addstring_whitelist") then
         textstr = string.gsub(textstr,"addstring_whitelist","")
         decision = "whitelist"
@@ -160,7 +163,9 @@ local function addstring(textstr)
         end
             
         count = count + 1
-        -- print(count,": -",substring) DEBUGGING PRINT
+        if debug_mode == true then
+            print(count,": -",substrblacklisting)
+        end
     end
 
     finalstring = 
@@ -175,12 +180,14 @@ local function addstring(textstr)
      .. tostring(tempString9)
      .. tostring(tempString10)
     finalstring = ltrim(finalstring)
-    print("Added string : ", finalstring)
-    printdivider()
 
     if decision == "whitelist" then
+        print("Added string to whitelist : ", finalstring)
+        printdivider()
         table.insert(whitelistedStringTable,finalstring)
     elseif decision == "blacklist" then
+        print("Added string to blacklist : ", finalstring)
+        printdivider()
         table.insert(blacklistedStringTable,finalstring)
     end
 
@@ -202,8 +209,14 @@ local function liststrings_whitelist()
          print("Whitelist is empty")
     end
 
-    for i,v in ipairs(whitelistedStringTable) do
-        print(i,": -",v,"||")
+    if debug_mode == true then
+        for i,v in ipairs(whitelistedStringTable) do
+            print(i,": -",v,"||")
+        end
+    elseif (debug_mode == false) or (debug_mode == nil) then
+        for i,v in ipairs(whitelistedStringTable) do
+            print(i,": -",v)
+        end
     end
     printdivider()
 end
@@ -215,9 +228,16 @@ local function liststrings_blacklist()
          print("Blacklist is empty")
     end
 
-    for i,v in ipairs(blacklistedStringTable) do
-        print(i,": -",v,"||")
+    if debug_mode == true then
+        for i,v in ipairs(blacklistedStringTable) do
+            print(i,": -",v,"||")
+        end
+    elseif (debug_mode == false) or (debug_mode == nil) then
+        for i,v in ipairs(blacklistedStringTable) do
+            print(i,": -",v)
+        end
     end
+    printdivider()
 end
 
 local function case_insensitive_on()
@@ -248,6 +268,124 @@ local function case_insensitive_status()
     end
 end
 
+local function chat_filter(self,event,message,sender,channel_number,channel_name,...)
+    if debug_mode == true then
+      print("event :"..event)
+      print("message :"..message)
+      print("sender :"..sender)
+      print("channel_name :"..channel_name)
+      printdivider()
+    end
+
+    if whitelistedStringTable == nil then
+        printdivider()
+        print("No string table detected, creating a new, empty one")
+        whitelistedStringTable = {nil}
+    end
+
+    if blacklistedStringTable == nil then
+        printdivider()
+        print("No string table detected, creating a new, empty one")
+        blacklistedStringTable = {nil}
+    end
+
+    for i, v in ipairs(whitelistedStringTable) do
+        local dont_repeat_notification = false
+
+        if caseInsensitive == true then
+        if (message:find(v)) and (dont_repeat_notification == false) then -- if matches normally
+            print("|cff00ff00".."↓ Whitelisted Message ↓")
+            RaidNotice_AddMessage(RaidWarningFrame,"ALERT: Whitelisted string detected", ChatTypeInfo["RAID_WARNING"])
+            PlaySoundFile("Sound\\Interface\\RaidWarning.ogg")
+            dont_repeat_notification = true
+        end
+
+        message = message:lower()
+        if (message:find(v)) and (dont_repeat_notification == false) then -- if matches all lowercase
+            print("|cff00ff00".."↓ Whitelisted Message ↓")
+            RaidNotice_AddMessage(RaidWarningFrame,"ALERT: Whitelisted string detected", ChatTypeInfo["RAID_WARNING"])
+            PlaySoundFile("Sound\\Interface\\RaidWarning.ogg")
+            dont_repeat_notification = true
+        end
+
+        message = message:upper()
+        if (message:find(v)) and (dont_repeat_notification == false) then -- if matches all uppercase
+            print("|cff00ff00".."↓ Whitelisted Message ↓")
+            RaidNotice_AddMessage(RaidWarningFrame,"ALERT: Whitelisted string detected", ChatTypeInfo["RAID_WARNING"])
+            PlaySoundFile("Sound\\Interface\\RaidWarning.ogg")
+            dont_repeat_notification = true
+        end
+
+        -- from here on, we are checking just for the exact case sensitive message
+        elseif (caseInsensitive == false) or (caseInsensitive == nil) then
+            if message:find(v) then
+                print("|cff00ff00".."↓ Whitelisted Message ↓") -- green color
+                RaidNotice_AddMessage(RaidWarningFrame,"ALERT: Whitelisted string detected", ChatTypeInfo["RAID_WARNING"])
+                PlaySoundFile("Sound\\Interface\\RaidWarning.ogg")
+                dont_repeat_notification = true
+            end
+        end
+    end
+
+    for i, v in ipairs(blacklistedStringTable) do
+        if caseInsensitive == true then
+
+        if message:find(v) then -- if matches normally
+            return true
+        end
+
+        message = message:lower()
+        if message:find(v) then -- if matches all lowercase
+            return true
+        end
+
+        message = message:upper()
+        if message:find(v) then -- if matches all uppercase
+            return true
+        end
+    
+        -- from here on, we are checking just for the exact case sensitive message
+        elseif (caseInsensitive == false) or (caseInsensitive == nil) then
+            if message:find(v) then
+                return true -- hide message
+            end
+        end
+    end
+end
+
+ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL", chat_filter)
+ChatFrame_AddMessageEventFilter("CHAT_MSG_SAY", chat_filter)
+ChatFrame_AddMessageEventFilter("CHAT_MSG_YELL", chat_filter)
+ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER", chat_filter)
+
+local function turnoff_handler(self,event,message,sender,channel_number,channel_name,...)
+    ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL", turnoff_handler)
+    ChatFrame_AddMessageEventFilter("CHAT_MSG_SAY", turnoff_handler)
+    ChatFrame_AddMessageEventFilter("CHAT_MSG_YELL", turnoff_handler)
+    ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER", turnoff_handler)
+end
+
+local function turnoff()
+    print("|cffff0000".."FILTER DISABLED") -- red color
+    ChatFrame_RemoveMessageEventFilter("CHAT_MSG_CHANNEL", chat_filter)
+    ChatFrame_RemoveMessageEventFilter("CHAT_MSG_SAY", chat_filter)
+    ChatFrame_RemoveMessageEventFilter("CHAT_MSG_YELL", chat_filter)
+    ChatFrame_RemoveMessageEventFilter("CHAT_MSG_WHISPER", chat_filter)
+    turnoff_handler()
+end
+
+local function turnon()
+    print("|cff00ff00".."FILTER ENABLED") -- green color
+    ChatFrame_RemoveMessageEventFilter("CHAT_MSG_CHANNEL", turnoff_handler)
+    ChatFrame_RemoveMessageEventFilter("CHAT_MSG_SAY", turnoff_handler)
+    ChatFrame_RemoveMessageEventFilter("CHAT_MSG_YELL", turnoff_handler)
+    ChatFrame_RemoveMessageEventFilter("CHAT_MSG_WHISPER", turnoff_handler)
+
+    ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL", chat_filter)
+    ChatFrame_AddMessageEventFilter("CHAT_MSG_SAY", chat_filter)
+    ChatFrame_AddMessageEventFilter("CHAT_MSG_YELL", chat_filter)
+    ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER", chat_filter)
+end
 
 function CommandHandler()
     if module == "help" then
@@ -314,102 +452,16 @@ function CommandHandler()
         end
     elseif module == "wipe_everything" then
         wipe_everything()
-    elseif module == "" then --Aka, if the user ONLY types /CS in chat
-        help()
     elseif string.find(module, "addstring_whitelist") or string.find(module, "addstring_blacklist")  then
         addstring()
+    elseif module == "turnoff" then
+        turnoff()
+    elseif module == "turnon" then
+        turnon()
+    elseif module == "" then --Aka, if the user ONLY types /CS in chat
+        help()
     else
         print("Incorrect command entered")
         print("Typed command: ","'",module,"'")
     end
 end
-
-local function chat_filter(self,event,message,sender,channel_number,channel_name,...)
-    if debug_mode == true then
-      print("event :"..event)
-      print("message :"..message)
-      print("sender :"..sender)
-      print("channel_name :"..channel_name)
-      printdivider()
-    end
-
-    if whitelistedStringTable == nil then
-        printdivider()
-        print("No string table detected, creating a new, empty one")
-        whitelistedStringTable = {nil}
-    end
-
-    if blacklistedStringTable == nil then
-        printdivider()
-        print("No string table detected, creating a new, empty one")
-        blacklistedStringTable = {nil}
-    end
-
-    for i, v in ipairs(whitelistedStringTable) do
-        local dont_repeat_notification = false
-
-        if caseInsensitive == true then
-        if (message:find(v)) and (dont_repeat_notification == false) then -- if matches normally
-            print("|cff00ff00".."↓ Whitelisted Message ↓")
-            RaidNotice_AddMessage(RaidWarningFrame,"ALERT: Whitelisted string detected", ChatTypeInfo["RAID_WARNING"])
-            PlaySoundFile("Sound\\Interface\\RaidWarning.ogg")
-            dont_repeat_notification = true
-        end
-
-        message = message:lower()
-        if (message:find(v)) and (dont_repeat_notification == false) then -- if matches all lowercase
-            print("|cff00ff00".."↓ Whitelisted Message ↓")
-            RaidNotice_AddMessage(RaidWarningFrame,"ALERT: Whitelisted string detected", ChatTypeInfo["RAID_WARNING"])
-            PlaySoundFile("Sound\\Interface\\RaidWarning.ogg")
-            dont_repeat_notification = true
-        end
-
-        message = message:upper()
-        if (message:find(v)) and (dont_repeat_notification == false) then -- if matches all uppercase
-            print("|cff00ff00".."↓ Whitelisted Message ↓")
-            RaidNotice_AddMessage(RaidWarningFrame,"ALERT: Whitelisted string detected", ChatTypeInfo["RAID_WARNING"])
-            PlaySoundFile("Sound\\Interface\\RaidWarning.ogg")
-            dont_repeat_notification = true
-        end
-
-        -- from here on, we are checking just for the exact case sensitive message
-        elseif (caseInsensitive == false) or (caseInsensitive == nil) then
-            if message:find(v) then
-                print("|cff00ff00".."↓ Whitelisted Message ↓")
-                RaidNotice_AddMessage(RaidWarningFrame,"ALERT: Whitelisted string detected", ChatTypeInfo["RAID_WARNING"])
-                PlaySoundFile("Sound\\Interface\\RaidWarning.ogg")
-                dont_repeat_notification = true
-            end
-        end
-    end
-
-    for i, v in ipairs(blacklistedStringTable) do
-        if caseInsensitive == true then
-
-        if message:find(v) then -- if matches normally
-            return true
-        end
-
-        message = message:lower()
-        if message:find(v) then -- if matches all lowercase
-            return true
-        end
-
-        message = message:upper()
-        if message:find(v) then -- if matches all uppercase
-            return true
-        end
-    
-        -- from here on, we are checking just for the exact case sensitive message
-        elseif (caseInsensitive == false) or (caseInsensitive == nil) then
-            if message:find(v) then
-                return true -- hide message
-            end
-        end
-    end
-end
-
-ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL", chat_filter)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_SAY", chat_filter)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_YELL", chat_filter)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER", chat_filter)
