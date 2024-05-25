@@ -1,4 +1,4 @@
-## Interface: 11302
+## Interface: 11502
 ## Title: ChatScanner
 ## Version: 0.0.1
 ## Author:databoose
