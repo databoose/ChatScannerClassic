@@ -357,12 +357,14 @@ ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL", chat_filter)
 ChatFrame_AddMessageEventFilter("CHAT_MSG_SAY", chat_filter)
 ChatFrame_AddMessageEventFilter("CHAT_MSG_YELL", chat_filter)
 ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER", chat_filter)
+ChatFrame_AddMessageEventFilter("CHAT_MSG_GUILD", chat_filter)
 
 local function turnoff_handler(self,event,message,sender,channel_number,channel_name,...)
     ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL", turnoff_handler)
     ChatFrame_AddMessageEventFilter("CHAT_MSG_SAY", turnoff_handler)
     ChatFrame_AddMessageEventFilter("CHAT_MSG_YELL", turnoff_handler)
     ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER", turnoff_handler)
+    ChatFrame_AddMessageEventFilter("CHAT_MSG_GUILD", chat_filter)
 end
 
 local function turnoff()
@@ -371,6 +373,7 @@ local function turnoff()
     ChatFrame_RemoveMessageEventFilter("CHAT_MSG_SAY", chat_filter)
     ChatFrame_RemoveMessageEventFilter("CHAT_MSG_YELL", chat_filter)
     ChatFrame_RemoveMessageEventFilter("CHAT_MSG_WHISPER", chat_filter)
+    ChatFrame_RemoveMessageEventFilter("CHAT_MSG_GUILD", chat_filter)
     turnoff_handler()
 end
 
@@ -380,11 +383,13 @@ local function turnon()
     ChatFrame_RemoveMessageEventFilter("CHAT_MSG_SAY", turnoff_handler)
     ChatFrame_RemoveMessageEventFilter("CHAT_MSG_YELL", turnoff_handler)
     ChatFrame_RemoveMessageEventFilter("CHAT_MSG_WHISPER", turnoff_handler)
+    ChatFrame_RemoveMessageEventFilter("CHAT_MSG_GUILD", chat_filter)
 
     ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL", chat_filter)
     ChatFrame_AddMessageEventFilter("CHAT_MSG_SAY", chat_filter)
     ChatFrame_AddMessageEventFilter("CHAT_MSG_YELL", chat_filter)
     ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER", chat_filter)
+    ChatFrame_AddMessageEventFilter("CHAT_MSG_GUILD", chat_filter)
 end
 
 function CommandHandler()
@@ -465,3 +470,4 @@ function CommandHandler()
         print("Typed command: ","'",module,"'")
     end
 end
+
